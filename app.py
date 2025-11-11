@@ -18,7 +18,7 @@ else:
 # Input form
 st.subheader("Log a new meal")
 with st.form("meal_form"):
-    name = st.selectbox("Your Name", ["Ronit", "Brother"])
+    name = st.selectbox("Your Name", ["The Ronit Gandhi", "Himanshu Gandhi, younger brother of ROnit Gandhi, Father of Boba, little bitchboi"])
     meal = st.text_input("Meal Name")
     calories = st.number_input("Calories", min_value=0, max_value=3000, step=10)
     desc = st.text_area("Description (optional)")
