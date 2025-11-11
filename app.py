@@ -20,30 +20,36 @@ SUPABASE_KEY = st.secrets["SUPABASE_KEY"]
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
 # ===== Get data =====
+@st.cache_data(ttl=60)
 def load_data():
-    data = supabase.table("meals").select("*").order("timestamp", desc=True).execute()
-    return pd.DataFrame(data.data)
+    """Load meal data from Supabase safely."""
+    try:
+        response = supabase.table("meals").select("*").order("timestamp", desc=True).execute()
+        df = pd.DataFrame(response.data)
+        if df.empty:
+            return pd.DataFrame(columns=["id", "timestamp", "name", "meal", "calories", "description", "comments"])
+        # Convert to datetime safely
+        df["timestamp"] = pd.to_datetime(df["timestamp"], errors="coerce")
+        df = df.dropna(subset=["timestamp"])
+        return df
+    except Exception as e:
+        st.error(f"Error loading data: {e}")
+        return pd.DataFrame(columns=["id", "timestamp", "name", "meal", "calories", "description", "comments"])
 
 df = load_data()
-# Handle first-time or empty data safely
-if df.empty or "timestamp" not in df.columns:
-    df = pd.DataFrame(columns=["timestamp", "name", "meal", "calories", "description", "comments"])
-else:
-    # Convert to datetime safely, ignore errors
-    df["timestamp"] = pd.to_datetime(df["timestamp"], errors="coerce")
 
-# Drop rows where timestamp couldn't be parsed
-df = df.dropna(subset=["timestamp"])
-
+# ========================
 # Compute today's meals
+# ========================
 today = datetime.now(CENTRAL_TZ).date()
 if not df.empty:
     df_today = df[df["timestamp"].dt.date == today]
 else:
     df_today = pd.DataFrame(columns=df.columns)
 
-
-# ===== Input form =====
+# ========================
+# Input form
+# ========================
 st.subheader("Log a new meal")
 with st.form("meal_form"):
     name = st.selectbox("Your Name", ["Lord Ronit Gandhi", "Commoner Himanshu Gandhi"])
@@ -55,34 +61,47 @@ with st.form("meal_form"):
 if submit and meal.strip():
     supabase.table("meals").insert({
         "name": name,
-        "meal": meal,
+        "meal": meal.strip(),
         "calories": calories,
-        "description": desc
+        "description": desc.strip(),
+        "timestamp": datetime.now(CENTRAL_TZ).isoformat()
     }).execute()
     st.success(f"{meal} logged successfully! 🔥")
+    st.cache_data.clear()
     st.rerun()
 
-# ===== Today’s Meals =====
+# ========================
+# Today's Meals
+# ========================
 st.subheader("Today's Meals 🍽️")
-df_today = df[df["timestamp"].dt.date == today]
 if df_today.empty:
     st.info("No meals logged today.")
 else:
     for i, row in df_today.iterrows():
-        st.markdown(f"### 🍽️ {row['meal']} ({row['calories']} cal)")
+        st.markdown(f"### 🍽️ {row['meal']} ({int(row['calories'])} cal)")
         st.write(f"**{row['name']}**: {row['description'] or ''}")
         st.caption(f"Logged at {row['timestamp'].strftime('%H:%M')}")
-        with st.expander("💬 Comments / Roasts"):
-            comments = row["comments"] or "No comments yet."
-            st.write(comments)
-            new_comment = st.text_input(f"Add comment for {row['meal']}", key=row['id'])
-            if st.button(f"Post {i}", key=f"comment_{i}"):
-                updated = (comments + "\n" if comments != "No comments yet." else "") + \
-                          f"{datetime.now(CENTRAL_TZ).strftime('%H:%M')} - {new_comment}"
-                supabase.table("meals").update({"comments": updated}).eq("id", row["id"]).execute()
-                st.rerun()
 
-# ===== Leaderboard =====
+        # Comments section
+        with st.expander("💬 Comments / Roasts"):
+            comments = row.get("comments") or "No comments yet."
+            st.write(comments)
+            new_comment = st.text_input(f"Add comment for {row['meal']}", key=f"comment_input_{i}")
+            if st.button(f"Post comment for {row['meal']}", key=f"comment_btn_{i}"):
+                if new_comment.strip():
+                    updated = (
+                        comments + "\n" if comments != "No comments yet." else ""
+                    ) + f"{datetime.now(CENTRAL_TZ).strftime('%H:%M')} - {new_comment.strip()}"
+                    supabase.table("meals").update({"comments": updated}).eq("id", row["id"]).execute()
+                    st.success("Comment added!")
+                    st.cache_data.clear()
+                    st.rerun()
+                else:
+                    st.warning("Comment cannot be empty!")
+
+# ========================
+# Leaderboard
+# ========================
 st.sidebar.header("🏆 Leaderboard of Shame (Today)")
 if not df_today.empty:
     leaderboard = (
@@ -93,17 +112,22 @@ if not df_today.empty:
     )
     st.sidebar.dataframe(leaderboard)
 
-# ===== History =====
+# ========================
+# History Chart
+# ========================
 st.subheader("📈 Calorie History")
 if not df.empty:
     df["date"] = df["timestamp"].dt.date
     chart_data = df.groupby(["date", "name"])["calories"].sum().unstack().fillna(0)
+
     fig, ax = plt.subplots()
     chart_data.plot(kind="line", marker="o", ax=ax)
     ax.set_title("Daily Calorie Intake")
     ax.set_ylabel("Calories")
     ax.xaxis.set_major_formatter(mdates.DateFormatter('%b %d'))
     fig.autofmt_xdate()
-    ax.grid(True)
+    ax.grid(True, linestyle="--", alpha=0.5)
     ax.legend(title="Name")
     st.pyplot(fig)
+else:
+    st.info("No meal data yet — log a meal to start tracking!")
