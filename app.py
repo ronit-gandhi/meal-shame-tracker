@@ -179,9 +179,9 @@ if not df.empty:
             f"**Δ from Goal:** <span style='color:{'red' if goal_diff>0 else 'green'}'>{goal_diff:+,} cal</span>",
             unsafe_allow_html=True
         )
-        st.sidebar.markdown(
-            f"**≈ {abs(goal_lbs):.2f} lb {'gained' if goal_diff>0 else 'lost'} vs goal**"
-        )
+    #    st.sidebar.markdown(
+    #        f"**≈ {abs(goal_lbs):.2f} lb {'gained' if goal_diff>0 else 'lost'} vs goal**"
+    #    )
 
         st.sidebar.markdown("**💪 TDEE Comparison**")
         st.sidebar.progress(min(avg_per_day / tdee, 1.0))
