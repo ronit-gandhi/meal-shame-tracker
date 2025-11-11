@@ -112,6 +112,40 @@ if not df_today.empty:
     )
     st.sidebar.dataframe(leaderboard)
 
+
+# ========================
+# Calorie Goals & Progress
+# ========================
+st.sidebar.header("🔥 Progress Tracker")
+
+# --- personal limits ---
+calorie_limit = {
+    "Lord Ronit Gandhi": 2000,
+    "Commoner Himanshu Gandhi": 1800
+}
+
+if not df.empty:
+    # total calories by person
+    totals = df.groupby("name")["calories"].sum()
+
+    for person, total in totals.items():
+        limit = calorie_limit.get(person, 2000)
+        diff = total - limit * len(df["timestamp"].dt.date.unique())  # expected over all days logged
+        lbs_change = diff / 3500.0  # rough 1 lb per 3500 cal rule
+        color = "green" if diff < 0 else "red"
+
+        st.sidebar.subheader(person)
+        st.sidebar.progress(min(total / (limit * len(df["timestamp"].dt.date.unique())), 1.0))
+        st.sidebar.write(f"**Total eaten:** {int(total)} cal")
+        st.sidebar.write(f"**Expected:** {limit * len(df['timestamp'].dt.date.unique())} cal")
+        st.sidebar.markdown(
+            f"**Difference:** <span style='color:{color}'>{int(diff)} cal</span>", unsafe_allow_html=True
+        )
+        st.sidebar.markdown(f"**≈ {lbs_change:.2f} lb {'lost' if diff < 0 else 'gained'}**")
+else:
+    st.sidebar.info("No data yet to calculate progress.")
+
+
 # ========================
 # History Chart
 # ========================
@@ -131,3 +165,41 @@ if not df.empty:
     st.pyplot(fig)
 else:
     st.info("No meal data yet — log a meal to start tracking!")
+
+
+
+
+
+
+# ========================
+# 📅 Archive & History Viewer
+# ========================
+st.subheader("📅 Archive & History")
+
+if not df.empty:
+    all_dates = sorted(df["timestamp"].dt.date.unique(), reverse=True)
+    selected_date = st.date_input("Select a date to view meals:", value=today, min_value=min(all_dates), max_value=max(all_dates))
+    
+    df_selected = df[df["timestamp"].dt.date == selected_date]
+    if df_selected.empty:
+        st.info(f"No meals logged on {selected_date}.")
+    else:
+        st.markdown(f"### Meals on {selected_date.strftime('%b %d, %Y')}")
+        for i, row in df_selected.iterrows():
+            st.markdown(f"#### 🍴 {row['meal']} ({int(row['calories'])} cal)")
+            st.write(f"**{row['name']}**: {row['description'] or ''}")
+            st.caption(f"Logged at {row['timestamp'].strftime('%H:%M')}")
+
+        # optional summary per person
+        st.write("#### Daily Summary")
+        day_summary = (
+            df_selected.groupby("name")["calories"]
+            .agg(["sum", "count"])
+            .rename(columns={"sum": "Total Calories", "count": "Meals"})
+            .sort_values("Total Calories", ascending=False)
+        )
+        st.dataframe(day_summary)
+
+else:
+    st.info("No archived data yet — log a meal first!")
+
