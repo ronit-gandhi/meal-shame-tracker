@@ -25,11 +25,23 @@ def load_data():
     return pd.DataFrame(data.data)
 
 df = load_data()
-if not df.empty and "timestamp" in df.columns:
-    df["timestamp"] = pd.to_datetime(df["timestamp"])
-else:
+# Handle first-time or empty data safely
+if df.empty or "timestamp" not in df.columns:
     df = pd.DataFrame(columns=["timestamp", "name", "meal", "calories", "description", "comments"])
+else:
+    # Convert to datetime safely, ignore errors
+    df["timestamp"] = pd.to_datetime(df["timestamp"], errors="coerce")
+
+# Drop rows where timestamp couldn't be parsed
+df = df.dropna(subset=["timestamp"])
+
+# Compute today's meals
 today = datetime.now(CENTRAL_TZ).date()
+if not df.empty:
+    df_today = df[df["timestamp"].dt.date == today]
+else:
+    df_today = pd.DataFrame(columns=df.columns)
+
 
 # ===== Input form =====
 st.subheader("Log a new meal")
