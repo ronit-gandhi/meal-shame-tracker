@@ -19,6 +19,7 @@ CSV_FILE = "meals.csv"
 if os.path.exists(CSV_FILE):
     df = pd.read_csv(CSV_FILE)
     df["Timestamp"] = pd.to_datetime(df["Timestamp"])
+    df["Timestamp"] = df["Timestamp"].dt.tz_localize("UTC").dt.tz_convert(CENTRAL_TZ)
 else:
     df = pd.DataFrame(columns=["Timestamp", "Name", "Meal", "Calories", "Description", "Comments"])
 
