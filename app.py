@@ -25,7 +25,10 @@ def load_data():
     return pd.DataFrame(data.data)
 
 df = load_data()
-df["timestamp"] = pd.to_datetime(df["timestamp"])
+if not df.empty and "timestamp" in df.columns:
+    df["timestamp"] = pd.to_datetime(df["timestamp"])
+else:
+    df = pd.DataFrame(columns=["timestamp", "name", "meal", "calories", "description", "comments"])
 today = datetime.now(CENTRAL_TZ).date()
 
 # ===== Input form =====
