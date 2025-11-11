@@ -2,52 +2,33 @@ import streamlit as st
 import pandas as pd
 from datetime import datetime
 from zoneinfo import ZoneInfo
-import gspread
-from google.oauth2.service_account import Credentials
+from supabase import create_client, Client
 import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
 
-# ===== CONFIG =====
+# ========================
+# CONFIG
+# ========================
 st.set_page_config(page_title="Meal Shame Tracker", page_icon="🍗", layout="centered")
 st.title("🍗 Meal Shame Tracker 🔥")
 
 CENTRAL_TZ = ZoneInfo("America/Chicago")
-now = datetime.now(CENTRAL_TZ)
-today = now.date()
 
-# ===== GOOGLE SHEETS CONNECTION =====
-SHEET_ID = "1q7zb4qXj_K1k3sYa9FOEuqfdT2AViB9sskjF3YCBsbY"  # your real Sheet ID
-SHEET_NAME = "Sheet1"
+# ===== Supabase connection =====
+SUPABASE_URL = st.secrets["SUPABASE_URL"]
+SUPABASE_KEY = st.secrets["SUPABASE_KEY"]
+supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
-scope = [
-    "https://www.googleapis.com/auth/spreadsheets",
-    "https://www.googleapis.com/auth/drive"
-]
+# ===== Get data =====
+def load_data():
+    data = supabase.table("meals").select("*").order("timestamp", desc=True).execute()
+    return pd.DataFrame(data.data)
 
-# ✅ Modern auth: use google-auth instead of oauth2client
-creds = Credentials.from_service_account_file("creds.json", scopes=scope)
-client = gspread.authorize(creds)
-sheet = client.open_by_key(SHEET_ID).worksheet(SHEET_NAME)
+df = load_data()
+df["timestamp"] = pd.to_datetime(df["timestamp"])
+today = datetime.now(CENTRAL_TZ).date()
 
-# Load existing data
-records = sheet.get_all_records()
-df = pd.DataFrame(records)
-
-if df.empty:
-    df = pd.DataFrame(columns=["Timestamp", "Name", "Meal", "Calories", "Description", "Comments"])
-
-# Convert timestamps safely
-if "Timestamp" in df.columns:
-    df["Timestamp"] = pd.to_datetime(df["Timestamp"], errors="coerce")
-    df = df.dropna(subset=["Timestamp"])
-
-# ===== USER SETTINGS =====
-user_bmr = {"Ronit": 2850, "Himanshu": 1900}
-calorie_limit = {"Ronit": 2000, "Himanshu": 1800}
-
-# -------------------------------
-# 🥘 Input form
-# -------------------------------
+# ===== Input form =====
 st.subheader("Log a new meal")
 with st.form("meal_form"):
     name = st.selectbox("Your Name", ["Lord Ronit Gandhi", "Commoner Himanshu Gandhi"])
@@ -56,159 +37,57 @@ with st.form("meal_form"):
     desc = st.text_area("Description (optional)")
     submit = st.form_submit_button("Submit")
 
-if submit:
-    if not meal.strip():
-        st.warning("Please enter a meal name before submitting.")
-    else:
-        sheet.append_row([
-            now.isoformat(),
-            name,
-            meal,
-            calories,
-            desc,
-            ""
-        ])
-        st.success(f"{meal} logged successfully! 🔥")
-        st.rerun()
+if submit and meal.strip():
+    supabase.table("meals").insert({
+        "name": name,
+        "meal": meal,
+        "calories": calories,
+        "description": desc
+    }).execute()
+    st.success(f"{meal} logged successfully! 🔥")
+    st.rerun()
 
-# ----------------------------
-# 🔢 Daily Calorie Tracker
-# ----------------------------
-st.sidebar.header("🔥 Daily Calorie Totals")
-df["Timestamp"] = pd.to_datetime(df["Timestamp"]).dt.tz_localize("UTC").dt.tz_convert(CENTRAL_TZ)
-df_today = df[df["Timestamp"].dt.date == today]
-
-for user in df["Name"].unique():
-    user_calories = df_today[df_today["Name"] == user]["Calories"].sum()
-    st.sidebar.write(f"**{user}**: {int(user_calories)} cal")
-
-# ----------------------------
-# Leaderboard
-# ----------------------------
-st.sidebar.markdown("---")
-st.sidebar.header("🏆 Leaderboard of Shame (Today)")
-
-leaderboard = (
-    df_today.groupby("Name")["Calories"]
-    .agg(["sum", "count"])
-    .sort_values("sum", ascending=False)
-    .rename(columns={"sum": "Total Calories", "count": "Meals Logged"})
-)
-
-st.sidebar.dataframe(leaderboard)
-
-# ----------------------------
-# All-time tracker
-# ----------------------------
-st.sidebar.markdown("---")
-st.sidebar.header("🧮 All-Time Calorie Balance")
-
-df["Date"] = df["Timestamp"].dt.date
-
-for user in df["Name"].unique():
-    user_df = df[df["Name"] == user]
-    days_logged = user_df["Date"].nunique()
-    total_cals = user_df["Calories"].sum()
-    daily_limit = calorie_limit.get(user, 2000)
-    total_limit = days_logged * daily_limit
-    balance = total_cals - total_limit
-
-    if balance > 0:
-        result = f"**+{balance}** cal surplus 🍔"
-    else:
-        result = f"**{balance}** cal deficit 💪"
-
-    st.sidebar.write(f"**{user}**: {total_cals:,} cal vs {total_limit:,} goal")
-    st.sidebar.caption(result)
-
-# ----------------------------
-# 📅 App Usage Stats
-# ----------------------------
-st.sidebar.markdown("---")
-st.sidebar.subheader("📅 App Usage Stats")
-unique_days = df["Timestamp"].dt.date.nunique()
-st.sidebar.write(f"**Days Logged:** {unique_days} total day(s)")
-
-# ----------------------------
-# 🔥 Theoretical Weight Change
-# ----------------------------
-st.sidebar.markdown("---")
-st.sidebar.header("🔥 Theoretical Weight Change (vs BMR)")
-
-for user in df["Name"].unique():
-    user_df = df[df["Name"] == user]
-    days_logged = user_df["Timestamp"].dt.date.nunique()
-    total_cals = user_df["Calories"].sum()
-    bmr = user_bmr.get(user, 2000)
-    total_bmr = days_logged * bmr
-    net = total_cals - total_bmr
-    fat_change = net / 3500
-
-    if fat_change > 0:
-        desc = f"**+{fat_change:.2f} lbs** theoretical gain 🍔"
-    else:
-        desc = f"**{fat_change:.2f} lbs** theoretical loss 💪"
-
-    st.sidebar.write(f"**{user}**: {desc}")
-
-# ----------------------------
-# 🔥 Meal Feed (Today)
-# ----------------------------
+# ===== Today’s Meals =====
 st.subheader("Today's Meals 🍽️")
-
+df_today = df[df["timestamp"].dt.date == today]
 if df_today.empty:
     st.info("No meals logged today.")
 else:
-    df_today = df_today.sort_values("Timestamp", ascending=False)
     for i, row in df_today.iterrows():
-        st.markdown(f"### 🍽️ {row['Meal']} ({int(row['Calories'])} cal)")
-        st.write(f"**{row['Name']}**: {row['Description']}")
-        st.caption(f"Logged at {row['Timestamp'].strftime('%H:%M')}")
+        st.markdown(f"### 🍽️ {row['meal']} ({row['calories']} cal)")
+        st.write(f"**{row['name']}**: {row['description'] or ''}")
+        st.caption(f"Logged at {row['timestamp'].strftime('%H:%M')}")
         with st.expander("💬 Comments / Roasts"):
-            comments = row['Comments'] or "No comments yet."
+            comments = row["comments"] or "No comments yet."
             st.write(comments)
-            new_comment = st.text_input(f"Add comment for {row['Meal']}", key=row['Timestamp'])
-            if st.button(f"Post comment {i}", key=f"c{i}"):
-                comments = str(comments) if pd.notna(comments) else ""
-                if comments.strip().lower() == "no comments yet.":
-                    comments = ""
-                updated_comments = comments + ("" if comments == "" else "\n") + f"{now.strftime('%H:%M')} - {new_comment}"
-                sheet.update_cell(i + 2, 6, updated_comments)
+            new_comment = st.text_input(f"Add comment for {row['meal']}", key=row['id'])
+            if st.button(f"Post {i}", key=f"comment_{i}"):
+                updated = (comments + "\n" if comments != "No comments yet." else "") + \
+                          f"{datetime.now(CENTRAL_TZ).strftime('%H:%M')} - {new_comment}"
+                supabase.table("meals").update({"comments": updated}).eq("id", row["id"]).execute()
                 st.rerun()
 
-# ----------------------------
-# 📦 Archive Older Meals
-# ----------------------------
-with st.expander("📜 Show Previous Days"):
-    df_past = df[df["Timestamp"].dt.date < today]
-    if df_past.empty:
-        st.write("No archived meals.")
-    else:
-        for i, row in df_past.sort_values("Timestamp", ascending=False).iterrows():
-            st.markdown(f"### 🍽️ {row['Meal']} ({int(row['Calories'])} cal)")
-            st.write(f"**{row['Name']}**: {row['Description']}")
-            st.caption(f"Logged on {row['Timestamp'].strftime('%Y-%m-%d %H:%M')}")
-            with st.expander("💬 Comments / Roasts", expanded=False):
-                st.write(row['Comments'] or "No comments yet.")
+# ===== Leaderboard =====
+st.sidebar.header("🏆 Leaderboard of Shame (Today)")
+if not df_today.empty:
+    leaderboard = (
+        df_today.groupby("name")["calories"]
+        .agg(["sum", "count"])
+        .sort_values("sum", ascending=False)
+        .rename(columns={"sum": "Total Calories", "count": "Meals"})
+    )
+    st.sidebar.dataframe(leaderboard)
 
-# ----------------------------
-# 📈 Calorie History
-# ----------------------------
+# ===== History =====
 st.subheader("📈 Calorie History")
-
-if df.empty:
-    st.info("No data to plot yet.")
-else:
-    df["Date"] = df["Timestamp"].dt.date
-    chart_data = df.groupby(["Date", "Name"])["Calories"].sum().unstack().fillna(0)
-
+if not df.empty:
+    df["date"] = df["timestamp"].dt.date
+    chart_data = df.groupby(["date", "name"])["calories"].sum().unstack().fillna(0)
     fig, ax = plt.subplots()
     chart_data.plot(kind="line", marker="o", ax=ax)
     ax.set_title("Daily Calorie Intake")
     ax.set_ylabel("Calories")
-    ax.set_xlabel("Date")
     ax.xaxis.set_major_formatter(mdates.DateFormatter('%b %d'))
-    ax.xaxis.set_major_locator(mdates.DayLocator())
     fig.autofmt_xdate()
     ax.grid(True)
     ax.legend(title="Name")
