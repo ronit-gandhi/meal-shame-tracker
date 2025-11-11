@@ -36,7 +36,7 @@ if submit and meal:
     df = pd.concat([df, pd.DataFrame([new_row])], ignore_index=True)
     df.to_csv(CSV_FILE, index=False)
     st.success(f"{meal} logged successfully! 🔥")
-    st.experimental_rerun()
+    st.rerun()
 
 # Display feed
 st.subheader("🔥 Meal Feed")
@@ -56,4 +56,4 @@ else:
                 updated_comments = (comments + "\n" if comments != "No comments yet." else "") + f"{datetime.now().strftime('%H:%M')} - {new_comment}"
                 df.at[i, "Comments"] = updated_comments
                 df.to_csv(CSV_FILE, index=False)
-                st.experimental_rerun()
+                st.rerun()
