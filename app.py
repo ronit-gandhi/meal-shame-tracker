@@ -54,50 +54,42 @@ with st.form("meal_form"):
     desc = st.text_area("Description (optional)")
     submit = st.form_submit_button("Submit")
 
-if submit and meal:
-    new_row = {
-        "Timestamp": now.isoformat(),  # store with timezone info
-        "Name": name,
-        "Meal": meal,
-        "Calories": calories,
-        "Description": desc,
-        "Comments": ""
-    }
-    df = pd.concat([df, pd.DataFrame([new_row])], ignore_index=True)
-    df.to_csv(CSV_FILE, index=False)
-    st.success(f"{meal} logged successfully! 🔥")
-    if submit and meal:
+if submit:
+    if not meal.strip():
+        st.warning("Please enter a meal name before submitting.")
+    else:
         new_row = {
-            "Timestamp": now.isoformat(),
+            "Timestamp": now.isoformat(),  # store with timezone info
             "Name": name,
             "Meal": meal,
             "Calories": calories,
             "Description": desc,
             "Comments": ""
         }
-    df = pd.concat([df, pd.DataFrame([new_row])], ignore_index=True)
-    df.to_csv(CSV_FILE, index=False)
 
-    # 🐷 Piggy limit roast
-    calorie_limit = {
-        "Ronit": 2000,
-        "Himanshu": 1800
-    }
+        # Add and save
+        df = pd.concat([df, pd.DataFrame([new_row])], ignore_index=True)
+        df.to_csv(CSV_FILE, index=False)
 
-    limit = calorie_limit.get(name, 2000)
-    excess = calories - limit
-    if excess > 0:
-        if excess > 500:
-            st.error(f"🐷 {name}, {excess} cal over the limit?! Might as well start spending your day in the mud, baconator lookin ass. Built like a bowlinhg ball, charlottes web lookin ass. no wonder your hair is greasy with all that butter you been drinking, looking like peppa pig obtuse sidekick.")
-        elif excess > 200:
-            st.error(f"🐷 {name}, {excess} cal over. Maybe lay off the snacks, piggy.")
+        # 🐷 Piggy limit roast
+        calorie_limit = {"Ronit": 2000, "Himanshu": 1800}
+        limit = calorie_limit.get(name, 2000)
+        excess = calories - limit
+
+        if excess > 0:
+            if excess > 500:
+                st.error(f"🐷 {name}, {excess} cal over the limit?! Might as well start spending your day in the mud, baconator lookin ass. Built like a bowling ball, Charlotte's Web lookin ass. No wonder your hair is greasy with all that butter you been drinking, looking like Peppa Pig's obtuse sidekick.")
+            elif excess > 200:
+                st.error(f"🐷 {name}, {excess} cal over. Maybe lay off the snacks, piggy.")
+            else:
+                st.error(f"🐷 {name}, you just tipped over by {excess} cal. Still counts. 🐖")
         else:
-            st.error(f"🐷 {name}, you just tipped over by {excess} cal. Still counts. 🐖")
+            st.success(f"{meal} logged successfully! 🔥")
 
-    st.success(f"{meal} logged successfully! 🔥")
-    st.rerun()
+        # ✅ Force refresh after successful submission
+        st.session_state["just_submitted"] = True
+        st.rerun()
 
-    st.rerun()
 
 # ----------------------------
 # 🔢 Daily Calorie Tracker
