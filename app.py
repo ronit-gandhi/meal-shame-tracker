@@ -3,7 +3,9 @@ import pandas as pd
 from datetime import datetime
 from zoneinfo import ZoneInfo
 import gspread
-from oauth2client.service_account import ServiceAccountCredentials
+from google.oauth2.service_account import Credentials
+import matplotlib.pyplot as plt
+import matplotlib.dates as mdates
 
 # ===== CONFIG =====
 st.set_page_config(page_title="Meal Shame Tracker", page_icon="🍗", layout="centered")
@@ -14,25 +16,35 @@ now = datetime.now(CENTRAL_TZ)
 today = now.date()
 
 # ===== GOOGLE SHEETS CONNECTION =====
-SHEET_ID = "1q7zb4qXj_K1k3sYa9FOEuqfdT2AViB9sskjF3YCBsbY"  # <-- Replace this with your real sheet ID
+SHEET_ID = "1q7zb4qXj_K1k3sYa9FOEuqfdT2AViB9sskjF3YCBsbY"  # your real Sheet ID
 SHEET_NAME = "Sheet1"
 
-scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
-creds = ServiceAccountCredentials.from_json_keyfile_name("creds.json", scope)
+scope = [
+    "https://www.googleapis.com/auth/spreadsheets",
+    "https://www.googleapis.com/auth/drive"
+]
+
+# ✅ Modern auth: use google-auth instead of oauth2client
+creds = Credentials.from_service_account_file("creds.json", scopes=scope)
 client = gspread.authorize(creds)
 sheet = client.open_by_key(SHEET_ID).worksheet(SHEET_NAME)
 
-# Load data
+# Load existing data
 records = sheet.get_all_records()
 df = pd.DataFrame(records)
 
 if df.empty:
     df = pd.DataFrame(columns=["Timestamp", "Name", "Meal", "Calories", "Description", "Comments"])
 
-# Convert timestamps to timezone-aware datetime
+# Convert timestamps safely
 if "Timestamp" in df.columns:
     df["Timestamp"] = pd.to_datetime(df["Timestamp"], errors="coerce")
     df = df.dropna(subset=["Timestamp"])
+
+# ===== USER SETTINGS =====
+user_bmr = {"Ronit": 2850, "Himanshu": 1900}
+calorie_limit = {"Ronit": 2000, "Himanshu": 1800}
+
 # -------------------------------
 # 🥘 Input form
 # -------------------------------
@@ -48,7 +60,6 @@ if submit:
     if not meal.strip():
         st.warning("Please enter a meal name before submitting.")
     else:
-        # Append to Google Sheet
         sheet.append_row([
             now.isoformat(),
             name,
@@ -64,7 +75,7 @@ if submit:
 # 🔢 Daily Calorie Tracker
 # ----------------------------
 st.sidebar.header("🔥 Daily Calorie Totals")
-df["Timestamp"] = pd.to_datetime(df["Timestamp"]).dt.tz_convert(CENTRAL_TZ)
+df["Timestamp"] = pd.to_datetime(df["Timestamp"]).dt.tz_localize("UTC").dt.tz_convert(CENTRAL_TZ)
 df_today = df[df["Timestamp"].dt.date == today]
 
 for user in df["Name"].unique():
@@ -84,19 +95,13 @@ leaderboard = (
     .rename(columns={"sum": "Total Calories", "count": "Meals Logged"})
 )
 
+st.sidebar.dataframe(leaderboard)
+
 # ----------------------------
 # All-time tracker
 # ----------------------------
-
-st.sidebar.dataframe(leaderboard)
-
 st.sidebar.markdown("---")
 st.sidebar.header("🧮 All-Time Calorie Balance")
-
-calorie_limit = {
-    "Ronit": 2000,
-    "Himanshu": 1800
-}
 
 df["Date"] = df["Timestamp"].dt.date
 
@@ -116,14 +121,17 @@ for user in df["Name"].unique():
     st.sidebar.write(f"**{user}**: {total_cals:,} cal vs {total_limit:,} goal")
     st.sidebar.caption(result)
 
-
+# ----------------------------
+# 📅 App Usage Stats
+# ----------------------------
 st.sidebar.markdown("---")
 st.sidebar.subheader("📅 App Usage Stats")
-
 unique_days = df["Timestamp"].dt.date.nunique()
 st.sidebar.write(f"**Days Logged:** {unique_days} total day(s)")
 
-
+# ----------------------------
+# 🔥 Theoretical Weight Change
+# ----------------------------
 st.sidebar.markdown("---")
 st.sidebar.header("🔥 Theoretical Weight Change (vs BMR)")
 
@@ -131,8 +139,7 @@ for user in df["Name"].unique():
     user_df = df[df["Name"] == user]
     days_logged = user_df["Timestamp"].dt.date.nunique()
     total_cals = user_df["Calories"].sum()
-
-    bmr = user_bmr.get(user, 2000)  # default fallback BMR
+    bmr = user_bmr.get(user, 2000)
     total_bmr = days_logged * bmr
     net = total_cals - total_bmr
     fat_change = net / 3500
@@ -143,8 +150,6 @@ for user in df["Name"].unique():
         desc = f"**{fat_change:.2f} lbs** theoretical loss 💪"
 
     st.sidebar.write(f"**{user}**: {desc}")
-
-
 
 # ----------------------------
 # 🔥 Meal Feed (Today)
@@ -168,8 +173,7 @@ else:
                 if comments.strip().lower() == "no comments yet.":
                     comments = ""
                 updated_comments = comments + ("" if comments == "" else "\n") + f"{now.strftime('%H:%M')} - {new_comment}"
-                df.at[i, "Comments"] = updated_comments
-                sheet.update_cell(i + 2, 6, updated_comments)  # 6th column = "Comments"
+                sheet.update_cell(i + 2, 6, updated_comments)
                 st.rerun()
 
 # ----------------------------
@@ -188,12 +192,8 @@ with st.expander("📜 Show Previous Days"):
                 st.write(row['Comments'] or "No comments yet.")
 
 # ----------------------------
-# History
+# 📈 Calorie History
 # ----------------------------
-
-import matplotlib.pyplot as plt
-import matplotlib.dates as mdates
-
 st.subheader("📈 Calorie History")
 
 if df.empty:
@@ -204,16 +204,12 @@ else:
 
     fig, ax = plt.subplots()
     chart_data.plot(kind="line", marker="o", ax=ax)
-
     ax.set_title("Daily Calorie Intake")
     ax.set_ylabel("Calories")
     ax.set_xlabel("Date")
-
-    # Format x-axis to clean date display
-    ax.xaxis.set_major_formatter(mdates.DateFormatter('%b %d'))  # e.g., Nov 10
+    ax.xaxis.set_major_formatter(mdates.DateFormatter('%b %d'))
     ax.xaxis.set_major_locator(mdates.DayLocator())
-    fig.autofmt_xdate()  # auto rotate labels
-
+    fig.autofmt_xdate()
     ax.grid(True)
     ax.legend(title="Name")
     st.pyplot(fig)
