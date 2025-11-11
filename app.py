@@ -23,6 +23,13 @@ if os.path.exists(CSV_FILE):
 else:
     df = pd.DataFrame(columns=["Timestamp", "Name", "Meal", "Calories", "Description", "Comments"])
 
+name_map = {
+    "Himanshu Gandhi, younger brother of ROnit Gandhi, Father of Boba, little bitchboi": "Himanshu",
+    "The Ronit Gandhi": "Ronit"
+}
+df["Name"] = df["Name"].replace(name_map)
+
+
 # Input form
 st.subheader("Log a new meal")
 with st.form("meal_form"):
