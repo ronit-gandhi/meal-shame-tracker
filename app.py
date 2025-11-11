@@ -147,6 +147,13 @@ for user in df["Name"].unique():
     st.sidebar.write(f"**{user}**: {total_cals:,} cal vs {total_limit:,} goal")
     st.sidebar.caption(result)
 
+st.sidebar.markdown("---")
+st.sidebar.subheader("📅 App Usage Stats")
+
+unique_days = df["Timestamp"].dt.date.nunique()
+st.sidebar.write(f"**Days Logged:** {unique_days} total day(s)")
+
+
 
 # ----------------------------
 # 🔥 Meal Feed (Today)
