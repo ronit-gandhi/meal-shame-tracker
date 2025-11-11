@@ -12,8 +12,12 @@ CSV_FILE = "meals.csv"
 # Load existing data
 if os.path.exists(CSV_FILE):
     df = pd.read_csv(CSV_FILE)
+    df["Timestamp"] = pd.to_datetime(df["Timestamp"])
 else:
     df = pd.DataFrame(columns=["Timestamp", "Name", "Meal", "Calories", "Description", "Comments"])
+
+# Get today's date
+today = datetime.now().date()
 
 # Input form
 st.subheader("Log a new meal")
@@ -26,7 +30,7 @@ with st.form("meal_form"):
 
 if submit and meal:
     new_row = {
-        "Timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        "Timestamp": datetime.now(),
         "Name": name,
         "Meal": meal,
         "Calories": calories,
@@ -38,16 +42,29 @@ if submit and meal:
     st.success(f"{meal} logged successfully! 🔥")
     st.rerun()
 
-# Display feed
-st.subheader("🔥 Meal Feed")
-if df.empty:
-    st.info("No meals logged yet.")
+# ----------------------------
+# 🔢 Daily Calorie Tracker
+# ----------------------------
+st.sidebar.header("🔥 Daily Calorie Totals")
+df_today = df[df["Timestamp"].dt.date == today]
+
+for user in df["Name"].unique():
+    user_calories = df_today[df_today["Name"] == user]["Calories"].sum()
+    st.sidebar.write(f"**{user}**: {int(user_calories)} cal")
+
+# ----------------------------
+# 🔥 Meal Feed
+# ----------------------------
+st.subheader("Today's Meals 🍽️")
+
+if df_today.empty:
+    st.info("No meals logged today.")
 else:
-    df = df.sort_values("Timestamp", ascending=False)
-    for i, row in df.iterrows():
-        st.markdown(f"### 🍽️ {row['Meal']} ({row['Calories']} cal)")
+    df_today = df_today.sort_values("Timestamp", ascending=False)
+    for i, row in df_today.iterrows():
+        st.markdown(f"### 🍽️ {row['Meal']} ({int(row['Calories'])} cal)")
         st.write(f"**{row['Name']}**: {row['Description']}")
-        st.caption(f"Logged at {row['Timestamp']}")
+        st.caption(f"Logged at {row['Timestamp'].strftime('%H:%M')}")
         with st.expander("💬 Comments / Roasts"):
             comments = row['Comments'] or "No comments yet."
             st.write(comments)
@@ -60,3 +77,18 @@ else:
                 df.at[i, "Comments"] = updated_comments
                 df.to_csv(CSV_FILE, index=False)
                 st.rerun()
+
+# ----------------------------
+# 📦 Archive Older Meals
+# ----------------------------
+with st.expander("📜 Show Previous Days"):
+    df_past = df[df["Timestamp"].dt.date < today]
+    if df_past.empty:
+        st.write("No archived meals.")
+    else:
+        for i, row in df_past.sort_values("Timestamp", ascending=False).iterrows():
+            st.markdown(f"### 🍽️ {row['Meal']} ({int(row['Calories'])} cal)")
+            st.write(f"**{row['Name']}**: {row['Description']}")
+            st.caption(f"Logged on {row['Timestamp'].strftime('%Y-%m-%d %H:%M')}")
+            with st.expander("💬 Comments / Roasts", expanded=False):
+                st.write(row['Comments'] or "No comments yet.")
