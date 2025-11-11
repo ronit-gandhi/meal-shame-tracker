@@ -14,7 +14,7 @@ now = datetime.now(CENTRAL_TZ)
 today = now.date()
 
 # ===== GOOGLE SHEETS CONNECTION =====
-SHEET_ID = "YOUR_SHEET_ID_HERE"  # <-- Replace this with your real sheet ID
+SHEET_ID = "1q7zb4qXj_K1k3sYa9FOEuqfdT2AViB9sskjF3YCBsbY"  # <-- Replace this with your real sheet ID
 SHEET_NAME = "Sheet1"
 
 scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
