@@ -114,37 +114,76 @@ if not df_today.empty:
 
 
 # ========================
-# Calorie Goals & Progress
 # ========================
-st.sidebar.header("🔥 Progress Tracker")
+# 🔥 Progress Dashboard
+# ========================
+st.sidebar.header("🔥 Progress Dashboard")
 
-# --- personal limits ---
-calorie_limit = {
-    "Lord Ronit Gandhi": 2000,
+# --- CONFIG ---
+calorie_goal = {
+    "Lord Ronit Gandhi": 2000,   # personal target
     "Commoner Himanshu Gandhi": 1800
 }
 
+TDEE = {
+    "Lord Ronit Gandhi": 2500,   # estimated maintenance
+    "Commoner Himanshu Gandhi": 2200
+}
+
 if not df.empty:
-    # total calories by person
+    df["date"] = df["timestamp"].dt.date
+    days_logged = df["date"].nunique()
+
     totals = df.groupby("name")["calories"].sum()
+    daily_avg = df.groupby("name")["calories"].mean()
 
-    for person, total in totals.items():
-        limit = calorie_limit.get(person, 2000)
-        diff = total - limit * len(df["timestamp"].dt.date.unique())  # expected over all days logged
-        lbs_change = diff / 3500.0  # rough 1 lb per 3500 cal rule
-        color = "green" if diff < 0 else "red"
+    for person in totals.index:
+        total = totals[person]
+        avg_per_day = daily_avg[person]
+        days = len(df[df["name"] == person]["date"].unique())
+        goal = calorie_goal.get(person, 2000)
+        tdee = TDEE.get(person, 2500)
 
+        # --- 1️⃣ Goal-based progress ---
+        goal_expected = goal * days
+        goal_diff = total - goal_expected
+        goal_lbs = goal_diff / 3500.0
+
+        # --- 2️⃣ TDEE-based progress ---
+        tdee_expected = tdee * days
+        tdee_diff = total - tdee_expected
+        tdee_lbs = tdee_diff / 3500.0
+
+        # --- Display ---
         st.sidebar.subheader(person)
-        st.sidebar.progress(min(total / (limit * len(df["timestamp"].dt.date.unique())), 1.0))
+
+        st.sidebar.markdown("**🎯 Calorie Goal Comparison**")
+        st.sidebar.progress(min(total / goal_expected, 1.0))
         st.sidebar.write(f"**Total eaten:** {int(total)} cal")
-        st.sidebar.write(f"**Expected:** {limit * len(df['timestamp'].dt.date.unique())} cal")
+        st.sidebar.write(f"**Goal (×{days} days):** {goal_expected} cal")
         st.sidebar.markdown(
-            f"**Difference:** <span style='color:{color}'>{int(diff)} cal</span>", unsafe_allow_html=True
+            f"**Δ from Goal:** <span style='color:{'red' if goal_diff>0 else 'green'}'>{goal_diff:+,} cal</span>",
+            unsafe_allow_html=True
         )
-        st.sidebar.markdown(f"**≈ {lbs_change:.2f} lb {'lost' if diff < 0 else 'gained'}**")
+        st.sidebar.markdown(
+            f"**≈ {abs(goal_lbs):.2f} lb {'gained' if goal_diff>0 else 'lost'} vs goal**"
+        )
+
+        st.sidebar.markdown("**💪 TDEE Comparison**")
+        st.sidebar.progress(min(avg_per_day / tdee, 1.0))
+        st.sidebar.write(f"**Avg per day:** {avg_per_day:.0f} cal")
+        st.sidebar.write(f"**TDEE:** {tdee} cal/day")
+        st.sidebar.markdown(
+            f"**Δ from TDEE:** <span style='color:{'red' if tdee_diff>0 else 'green'}'>{tdee_diff:+,} cal</span>",
+            unsafe_allow_html=True
+        )
+        st.sidebar.markdown(
+            f"**≈ {abs(tdee_lbs):.2f} lb {'gained' if tdee_diff>0 else 'lost'} vs TDEE**"
+        )
+
+        st.sidebar.divider()
 else:
     st.sidebar.info("No data yet to calculate progress.")
-
 
 # ========================
 # History Chart
