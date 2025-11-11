@@ -28,6 +28,14 @@ if os.path.exists(CSV_FILE):
 else:
     df = pd.DataFrame(columns=["Timestamp", "Name", "Meal", "Calories", "Description", "Comments"])
 
+if os.path.exists(CSV_FILE):
+    df = pd.read_csv(CSV_FILE)
+    df["Timestamp"] = pd.to_datetime(df["Timestamp"], errors="coerce")
+    df = df.dropna(subset=["Timestamp"])
+else:
+    df = pd.DataFrame(columns=["Timestamp", "Name", "Meal", "Calories", "Description", "Comments"])
+
+
 name_map = {
     "Himanshu Gandhi, younger brother of ROnit Gandhi, Father of Boba, little bitchboi": "Commoner Himanshu",
     "The Ronit Gandhi": "Lord Ronit"
