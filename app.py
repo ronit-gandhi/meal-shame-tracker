@@ -111,7 +111,41 @@ leaderboard = (
     .rename(columns={"sum": "Total Calories", "count": "Meals Logged"})
 )
 
+# ----------------------------
+# All-time tracker
+# ----------------------------
+
 st.sidebar.dataframe(leaderboard)
+
+st.sidebar.markdown("---")
+st.sidebar.header("🧮 All-Time Calorie Balance")
+
+# Reuse name map if you have one
+calorie_limit = {
+    "Ronit": 2000,
+    "Himanshu": 1800
+}
+
+df["Date"] = df["Timestamp"].dt.date
+
+for user in df["Name"].unique():
+    user_df = df[df["Name"] == user]
+    days_logged = user_df["Date"].nunique()
+    total_cals = user_df["Calories"].sum()
+    daily_limit = calorie_limit.get(user, 2000)
+    total_limit = days_logged * daily_limit
+    balance = total_cals - total_limit
+    fat_change = balance / 3500  # 1 lb fat ≈ 3500 kcal
+
+    if balance > 0:
+        emoji = "🍔"
+        result = f"**+{balance}** cal surplus ({fat_change:.2f} lbs gained) {emoji}"
+    else:
+        emoji = "💪"
+        result = f"**{balance}** cal deficit ({fat_change:.2f} lbs lost) {emoji}"
+
+    st.sidebar.write(f"**{user}**: {total_cals:,} cal vs {total_limit:,} goal")
+    st.sidebar.caption(result)
 
 
 # ----------------------------
