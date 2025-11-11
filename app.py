@@ -2,53 +2,43 @@ import streamlit as st
 import pandas as pd
 from datetime import datetime
 from zoneinfo import ZoneInfo
-import os
+import gspread
+from oauth2client.service_account import ServiceAccountCredentials
 
-# Set timezone to Central Time
+# ===== CONFIG =====
+st.set_page_config(page_title="Meal Shame Tracker", page_icon="🍗", layout="centered")
+st.title("🍗 Meal Shame Tracker 🔥")
+
 CENTRAL_TZ = ZoneInfo("America/Chicago")
 now = datetime.now(CENTRAL_TZ)
 today = now.date()
 
-user_bmr = {
-    "Ronit": 2850,     # <- manually set BMR
-    "Himanshu": 1900
-}
+# ===== GOOGLE SHEETS CONNECTION =====
+SHEET_ID = "YOUR_SHEET_ID_HERE"  # <-- Replace this with your real sheet ID
+SHEET_NAME = "Sheet1"
 
-st.set_page_config(page_title="Meal Shame Tracker", page_icon="🍗", layout="centered")
-st.title("🍗 Meal Shame Tracker 🔥")
-st.write("Log your meals and roast your brother mercilessly.")
+scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
+creds = ServiceAccountCredentials.from_json_keyfile_name("creds.json", scope)
+client = gspread.authorize(creds)
+sheet = client.open_by_key(SHEET_ID).worksheet(SHEET_NAME)
 
-CSV_FILE = "meals.csv"
+# Load data
+records = sheet.get_all_records()
+df = pd.DataFrame(records)
 
-if os.path.exists(CSV_FILE):
-    df = pd.read_csv(CSV_FILE)
-
-    # Make sure column names are clean and consistent
-    df.columns = [c.strip() for c in df.columns]
-
-    # Handle bad or missing timestamps gracefully
-    if "Timestamp" in df.columns:
-        df["Timestamp"] = pd.to_datetime(df["Timestamp"], errors="coerce")
-        df = df.dropna(subset=["Timestamp"])
-    else:
-        df["Timestamp"] = []
-else:
+if df.empty:
     df = pd.DataFrame(columns=["Timestamp", "Name", "Meal", "Calories", "Description", "Comments"])
 
-name_map = {
-    "Himanshu Gandhi, younger brother of ROnit Gandhi, Father of Boba, little bitchboi": "Commoner Himanshu",
-    "The Ronit Gandhi": "Lord Ronit"
-}
-df["Name"] = df["Name"].replace(name_map)
-
-
-# Input form
+# Convert timestamps to timezone-aware datetime
+if "Timestamp" in df.columns:
+    df["Timestamp"] = pd.to_datetime(df["Timestamp"], errors="coerce")
+    df = df.dropna(subset=["Timestamp"])
+# -------------------------------
+# 🥘 Input form
+# -------------------------------
 st.subheader("Log a new meal")
 with st.form("meal_form"):
-    name = st.selectbox("Your Name", [
-        "Lord Ronit Gandhi",
-        "Commoner Himanshu Gandhi"
-    ])
+    name = st.selectbox("Your Name", ["Lord Ronit Gandhi", "Commoner Himanshu Gandhi"])
     meal = st.text_input("Meal Name")
     calories = st.number_input("Calories", min_value=0, max_value=3000, step=10)
     desc = st.text_area("Description (optional)")
@@ -58,38 +48,17 @@ if submit:
     if not meal.strip():
         st.warning("Please enter a meal name before submitting.")
     else:
-        new_row = {
-            "Timestamp": now.isoformat(),  # store with timezone info
-            "Name": name,
-            "Meal": meal,
-            "Calories": calories,
-            "Description": desc,
-            "Comments": ""
-        }
-
-        # Add and save
-        df = pd.concat([df, pd.DataFrame([new_row])], ignore_index=True)
-        df.to_csv(CSV_FILE, index=False)
-
-        # 🐷 Piggy limit roast
-        calorie_limit = {"Ronit": 2000, "Himanshu": 1800}
-        limit = calorie_limit.get(name, 2000)
-        excess = calories - limit
-
-        if excess > 0:
-            if excess > 500:
-                st.error(f"🐷 {name}, {excess} cal over the limit?! Might as well start spending your day in the mud, baconator lookin ass. Built like a bowling ball, Charlotte's Web lookin ass. No wonder your hair is greasy with all that butter you been drinking, looking like Peppa Pig's obtuse sidekick.")
-            elif excess > 200:
-                st.error(f"🐷 {name}, {excess} cal over. Maybe lay off the snacks, piggy.")
-            else:
-                st.error(f"🐷 {name}, you just tipped over by {excess} cal. Still counts. 🐖")
-        else:
-            st.success(f"{meal} logged successfully! 🔥")
-
-        # ✅ Force refresh after successful submission
-        st.session_state["just_submitted"] = True
+        # Append to Google Sheet
+        sheet.append_row([
+            now.isoformat(),
+            name,
+            meal,
+            calories,
+            desc,
+            ""
+        ])
+        st.success(f"{meal} logged successfully! 🔥")
         st.rerun()
-
 
 # ----------------------------
 # 🔢 Daily Calorie Tracker
