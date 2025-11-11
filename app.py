@@ -61,6 +61,22 @@ for user in df["Name"].unique():
     st.sidebar.write(f"**{user}**: {int(user_calories)} cal")
 
 # ----------------------------
+# Leaderboard
+# ----------------------------
+st.sidebar.markdown("---")
+st.sidebar.header("🏆 Leaderboard of Shame (Today)")
+
+leaderboard = (
+    df_today.groupby("Name")["Calories"]
+    .agg(["sum", "count"])
+    .sort_values("sum", ascending=False)
+    .rename(columns={"sum": "Total Calories", "count": "Meals Logged"})
+)
+
+st.sidebar.dataframe(leaderboard)
+
+
+# ----------------------------
 # 🔥 Meal Feed (Today)
 # ----------------------------
 st.subheader("Today's Meals 🍽️")
@@ -100,3 +116,26 @@ with st.expander("📜 Show Previous Days"):
             st.caption(f"Logged on {row['Timestamp'].strftime('%Y-%m-%d %H:%M')}")
             with st.expander("💬 Comments / Roasts", expanded=False):
                 st.write(row['Comments'] or "No comments yet.")
+
+# ----------------------------
+# History
+# ----------------------------
+
+import matplotlib.pyplot as plt
+
+st.subheader("📈 Calorie History")
+
+if df.empty:
+    st.info("No data to plot yet.")
+else:
+    df["Date"] = df["Timestamp"].dt.date
+    chart_data = df.groupby(["Date", "Name"])["Calories"].sum().unstack().fillna(0)
+
+    fig, ax = plt.subplots()
+    chart_data.plot(kind="line", marker="o", ax=ax)
+    ax.set_title("Daily Calorie Intake")
+    ax.set_ylabel("Calories")
+    ax.set_xlabel("Date")
+    ax.grid(True)
+    st.pyplot(fig)
+
