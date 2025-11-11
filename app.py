@@ -59,6 +59,19 @@ with st.form("meal_form"):
     submit = st.form_submit_button("Submit")
 
 if submit and meal.strip():
+    # 🐷 Piggy Check
+    limits = {"Lord Ronit Gandhi": 2000, "Commoner Himanshu Gandhi": 1800}
+    limit = limits.get(name, 2000)
+    if calories > limit:
+        diff = calories - limit
+        if diff > 500:
+            st.error(f"🐷 {name}, {diff} cal over the limit?! You're going full hog mode.")
+        elif diff > 200:
+            st.error(f"🐷 {name}, {diff} cal over. Maybe lay off the snacks, piggy.")
+        else:
+            st.error(f"🐷 {name}, you just tipped over by {diff} cal. Still counts. 🐖")
+
+    # Save meal
     supabase.table("meals").insert({
         "name": name,
         "meal": meal.strip(),
@@ -69,6 +82,7 @@ if submit and meal.strip():
     st.success(f"{meal} logged successfully! 🔥")
     st.cache_data.clear()
     st.rerun()
+
 
 # ========================
 # Today's Meals
