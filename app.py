@@ -1,7 +1,13 @@
 import streamlit as st
 import pandas as pd
 from datetime import datetime
+from zoneinfo import ZoneInfo
 import os
+
+# Set timezone to Central Time
+CENTRAL_TZ = ZoneInfo("America/Chicago")
+now = datetime.now(CENTRAL_TZ)
+today = now.date()
 
 st.set_page_config(page_title="Meal Shame Tracker", page_icon="🍗", layout="centered")
 st.title("🍗 Meal Shame Tracker 🔥")
@@ -16,13 +22,13 @@ if os.path.exists(CSV_FILE):
 else:
     df = pd.DataFrame(columns=["Timestamp", "Name", "Meal", "Calories", "Description", "Comments"])
 
-# Get today's date
-today = datetime.now().date()
-
 # Input form
 st.subheader("Log a new meal")
 with st.form("meal_form"):
-    name = st.selectbox("Your Name", ["The Ronit Gandhi", "Himanshu Gandhi, younger brother of ROnit Gandhi, Father of Boba, little bitchboi"])
+    name = st.selectbox("Your Name", [
+        "The Ronit Gandhi",
+        "Himanshu Gandhi, younger brother of ROnit Gandhi, Father of Boba, little bitchboi"
+    ])
     meal = st.text_input("Meal Name")
     calories = st.number_input("Calories", min_value=0, max_value=3000, step=10)
     desc = st.text_area("Description (optional)")
@@ -30,7 +36,7 @@ with st.form("meal_form"):
 
 if submit and meal:
     new_row = {
-        "Timestamp": datetime.now(),
+        "Timestamp": now.isoformat(),  # store with timezone info
         "Name": name,
         "Meal": meal,
         "Calories": calories,
@@ -46,6 +52,7 @@ if submit and meal:
 # 🔢 Daily Calorie Tracker
 # ----------------------------
 st.sidebar.header("🔥 Daily Calorie Totals")
+df["Timestamp"] = pd.to_datetime(df["Timestamp"]).dt.tz_convert(CENTRAL_TZ)
 df_today = df[df["Timestamp"].dt.date == today]
 
 for user in df["Name"].unique():
@@ -53,7 +60,7 @@ for user in df["Name"].unique():
     st.sidebar.write(f"**{user}**: {int(user_calories)} cal")
 
 # ----------------------------
-# 🔥 Meal Feed
+# 🔥 Meal Feed (Today)
 # ----------------------------
 st.subheader("Today's Meals 🍽️")
 
@@ -73,7 +80,7 @@ else:
                 comments = str(comments) if pd.notna(comments) else ""
                 if comments.strip().lower() == "no comments yet.":
                     comments = ""
-                updated_comments = comments + ("" if comments == "" else "\n") + f"{datetime.now().strftime('%H:%M')} - {new_comment}"
+                updated_comments = comments + ("" if comments == "" else "\n") + f"{now.strftime('%H:%M')} - {new_comment}"
                 df.at[i, "Comments"] = updated_comments
                 df.to_csv(CSV_FILE, index=False)
                 st.rerun()
