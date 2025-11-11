@@ -24,8 +24,8 @@ else:
     df = pd.DataFrame(columns=["Timestamp", "Name", "Meal", "Calories", "Description", "Comments"])
 
 name_map = {
-    "Himanshu Gandhi, younger brother of ROnit Gandhi, Father of Boba, little bitchboi": "Himanshu",
-    "The Ronit Gandhi": "Ronit"
+    "Himanshu Gandhi, younger brother of ROnit Gandhi, Father of Boba, little bitchboi": "Commoner Himanshu",
+    "The Ronit Gandhi": "Lord Ronit"
 }
 df["Name"] = df["Name"].replace(name_map)
 
