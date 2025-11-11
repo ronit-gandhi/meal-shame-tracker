@@ -20,21 +20,20 @@ st.write("Log your meals and roast your brother mercilessly.")
 
 CSV_FILE = "meals.csv"
 
-# Load existing data
 if os.path.exists(CSV_FILE):
     df = pd.read_csv(CSV_FILE)
-    df["Timestamp"] = pd.to_datetime(df["Timestamp"])
-    df["Timestamp"] = df["Timestamp"].dt.tz_localize("UTC").dt.tz_convert(CENTRAL_TZ)
+
+    # Make sure column names are clean and consistent
+    df.columns = [c.strip() for c in df.columns]
+
+    # Handle bad or missing timestamps gracefully
+    if "Timestamp" in df.columns:
+        df["Timestamp"] = pd.to_datetime(df["Timestamp"], errors="coerce")
+        df = df.dropna(subset=["Timestamp"])
+    else:
+        df["Timestamp"] = []
 else:
     df = pd.DataFrame(columns=["Timestamp", "Name", "Meal", "Calories", "Description", "Comments"])
-
-if os.path.exists(CSV_FILE):
-    df = pd.read_csv(CSV_FILE)
-    df["Timestamp"] = pd.to_datetime(df["Timestamp"], errors="coerce")
-    df = df.dropna(subset=["Timestamp"])
-else:
-    df = pd.DataFrame(columns=["Timestamp", "Name", "Meal", "Calories", "Description", "Comments"])
-
 
 name_map = {
     "Himanshu Gandhi, younger brother of ROnit Gandhi, Father of Boba, little bitchboi": "Commoner Himanshu",
