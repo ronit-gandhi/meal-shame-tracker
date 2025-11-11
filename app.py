@@ -53,7 +53,12 @@ else:
             st.write(comments)
             new_comment = st.text_input(f"Add comment for {row['Meal']}", key=row['Timestamp'])
             if st.button(f"Post comment {i}", key=f"c{i}"):
-                updated_comments = (comments + "\n" if comments != "No comments yet." else "") + f"{datetime.now().strftime('%H:%M')} - {new_comment}"
+                comments = str(comments) if pd.notna(comments) else ""
+if comments.strip().lower() == "no comments yet.":
+    comments = ""
+
+updated_comments = comments + ("" if comments == "" else "\n") + f"{datetime.now().strftime('%H:%M')} - {new_comment}"
+
                 df.at[i, "Comments"] = updated_comments
                 df.to_csv(CSV_FILE, index=False)
                 st.rerun()
