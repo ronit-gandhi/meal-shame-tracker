@@ -1,46 +1,21 @@
-# -------------------------------------------------------
-# Meal Shame Tracker 🍗🔥
-# Streamlit app for Ronit & his brother
-# -------------------------------------------------------
-
 import streamlit as st
 import pandas as pd
-import gspread
-from oauth2client.service_account import ServiceAccountCredentials
 from datetime import datetime
+import os
 
-# ------------------ CONFIG ------------------
 st.set_page_config(page_title="Meal Shame Tracker", page_icon="🍗", layout="centered")
 st.title("🍗 Meal Shame Tracker 🔥")
-st.write("Hold each other accountable (and roast each other's meals).")
+st.write("Log your meals and roast your brother mercilessly.")
 
-# ------------------ GOOGLE SHEETS SETUP ------------------
-# You'll need to create a Google Cloud service account & JSON key file
-# Steps:
-# 1. Go to https://console.cloud.google.com/
-# 2. Create a project → Enable Google Sheets API
-# 3. Create credentials → Service Account → JSON key
-# 4. Share your target Google Sheet with that service account email
-# 5. Save JSON key file as 'creds.json' in the same folder
+CSV_FILE = "meals.csv"
 
-scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
-creds = ServiceAccountCredentials.from_json_keyfile_name("creds.json", scope)
-client = gspread.authorize(creds)
+# Load existing data
+if os.path.exists(CSV_FILE):
+    df = pd.read_csv(CSV_FILE)
+else:
+    df = pd.DataFrame(columns=["Timestamp", "Name", "Meal", "Calories", "Description", "Comments"])
 
-# Create or open sheet
-sheet_name = "MealShame"
-try:
-    sheet = client.open(sheet_name).sheet1
-except:
-    sh = client.create(sheet_name)
-    sheet = sh.sheet1
-    sheet.append_row(["Timestamp", "Name", "Meal", "Calories", "Description", "Comments"])
-
-# Load data
-data = sheet.get_all_records()
-df = pd.DataFrame(data)
-
-# ------------------ INPUT FORM ------------------
+# Input form
 st.subheader("Log a new meal")
 with st.form("meal_form"):
     name = st.selectbox("Your Name", ["Ronit", "Brother"])
@@ -49,31 +24,36 @@ with st.form("meal_form"):
     desc = st.text_area("Description (optional)")
     submit = st.form_submit_button("Submit")
 
-if submit:
-    new_row = [datetime.now().strftime("%Y-%m-%d %H:%M:%S"), name, meal, calories, desc, ""]
-    sheet.append_row(new_row)
+if submit and meal:
+    new_row = {
+        "Timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        "Name": name,
+        "Meal": meal,
+        "Calories": calories,
+        "Description": desc,
+        "Comments": ""
+    }
+    df = pd.concat([df, pd.DataFrame([new_row])], ignore_index=True)
+    df.to_csv(CSV_FILE, index=False)
     st.success(f"{meal} logged successfully! 🔥")
+    st.experimental_rerun()
 
-# ------------------ DISPLAY FEED ------------------
+# Display feed
 st.subheader("🔥 Meal Feed")
-
 if df.empty:
     st.info("No meals logged yet.")
 else:
     df = df.sort_values("Timestamp", ascending=False)
-    for _, row in df.iterrows():
+    for i, row in df.iterrows():
         st.markdown(f"### 🍽️ {row['Meal']} ({row['Calories']} cal)")
         st.write(f"**{row['Name']}**: {row['Description']}")
         st.caption(f"Logged at {row['Timestamp']}")
-
-        # Comments section
         with st.expander("💬 Comments / Roasts"):
-            existing_comments = str(row.get("Comments", ""))
-            st.write(existing_comments if existing_comments else "No comments yet.")
+            comments = row['Comments'] or "No comments yet."
+            st.write(comments)
             new_comment = st.text_input(f"Add comment for {row['Meal']}", key=row['Timestamp'])
-            if st.button(f"Post comment on {row['Meal']}", key=row['Meal']):
-                updated_comment = existing_comments + f"\n{datetime.now().strftime('%H:%M')} - {new_comment}"
-                cell = df.index.get_loc(_) + 2  # +2 because Google Sheets starts at row 2
-                sheet.update_cell(cell, 6, updated_comment)
-                st.success("Comment added!")
+            if st.button(f"Post comment {i}", key=f"c{i}"):
+                updated_comments = (comments + "\n" if comments != "No comments yet." else "") + f"{datetime.now().strftime('%H:%M')} - {new_comment}"
+                df.at[i, "Comments"] = updated_comments
+                df.to_csv(CSV_FILE, index=False)
                 st.experimental_rerun()
