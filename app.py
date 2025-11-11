@@ -10,7 +10,7 @@ now = datetime.now(CENTRAL_TZ)
 today = now.date()
 
 user_bmr = {
-    "Ronit": 1650,     # <- manually set BMR
+    "Ronit": 2850,     # <- manually set BMR
     "Himanshu": 1900
 }
 
