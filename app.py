@@ -55,14 +55,14 @@ if submit and meal:
     df.to_csv(CSV_FILE, index=False)
     st.success(f"{meal} logged successfully! 🔥")
     if submit and meal:
-    new_row = {
-        "Timestamp": now.isoformat(),
-        "Name": name,
-        "Meal": meal,
-        "Calories": calories,
-        "Description": desc,
-        "Comments": ""
-    }
+        new_row = {
+            "Timestamp": now.isoformat(),
+            "Name": name,
+            "Meal": meal,
+            "Calories": calories,
+            "Description": desc,
+            "Comments": ""
+        }
     df = pd.concat([df, pd.DataFrame([new_row])], ignore_index=True)
     df.to_csv(CSV_FILE, index=False)
 
