@@ -9,6 +9,11 @@ CENTRAL_TZ = ZoneInfo("America/Chicago")
 now = datetime.now(CENTRAL_TZ)
 today = now.date()
 
+user_bmr = {
+    "Ronit": 1650,     # <- manually set BMR
+    "Himanshu": 1900
+}
+
 st.set_page_config(page_title="Meal Shame Tracker", page_icon="🍗", layout="centered")
 st.title("🍗 Meal Shame Tracker 🔥")
 st.write("Log your meals and roast your brother mercilessly.")
@@ -120,7 +125,6 @@ st.sidebar.dataframe(leaderboard)
 st.sidebar.markdown("---")
 st.sidebar.header("🧮 All-Time Calorie Balance")
 
-# Reuse name map if you have one
 calorie_limit = {
     "Ronit": 2000,
     "Himanshu": 1800
@@ -135,23 +139,42 @@ for user in df["Name"].unique():
     daily_limit = calorie_limit.get(user, 2000)
     total_limit = days_logged * daily_limit
     balance = total_cals - total_limit
-    fat_change = balance / 3500  # 1 lb fat ≈ 3500 kcal
 
     if balance > 0:
-        emoji = "🍔"
-        result = f"**+{balance}** cal surplus ({fat_change:.2f} lbs gained) {emoji}"
+        result = f"**+{balance}** cal surplus 🍔"
     else:
-        emoji = "💪"
-        result = f"**{balance}** cal deficit ({fat_change:.2f} lbs lost) {emoji}"
+        result = f"**{balance}** cal deficit 💪"
 
     st.sidebar.write(f"**{user}**: {total_cals:,} cal vs {total_limit:,} goal")
     st.sidebar.caption(result)
+
 
 st.sidebar.markdown("---")
 st.sidebar.subheader("📅 App Usage Stats")
 
 unique_days = df["Timestamp"].dt.date.nunique()
 st.sidebar.write(f"**Days Logged:** {unique_days} total day(s)")
+
+
+st.sidebar.markdown("---")
+st.sidebar.header("🔥 Theoretical Weight Change (vs BMR)")
+
+for user in df["Name"].unique():
+    user_df = df[df["Name"] == user]
+    days_logged = user_df["Timestamp"].dt.date.nunique()
+    total_cals = user_df["Calories"].sum()
+
+    bmr = user_bmr.get(user, 2000)  # default fallback BMR
+    total_bmr = days_logged * bmr
+    net = total_cals - total_bmr
+    fat_change = net / 3500
+
+    if fat_change > 0:
+        desc = f"**+{fat_change:.2f} lbs** theoretical gain 🍔"
+    else:
+        desc = f"**{fat_change:.2f} lbs** theoretical loss 💪"
+
+    st.sidebar.write(f"**{user}**: {desc}")
 
 
 
