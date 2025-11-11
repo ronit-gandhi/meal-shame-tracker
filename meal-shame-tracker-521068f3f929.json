@@ -1,0 +1,13 @@
+{
+  "type": "service_account",
+  "project_id": "meal-shame-tracker",
+  "private_key_id": "521068f3f9298ad8c55f13d3c1ae8e529f0ecde7",
+  "private_key": "-----BEGIN PRIVATE KEY-----\nMIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQDQfPnPaKW6ULOU\neegVJGFoLRHqUMuH5hC5FHrkdnmOxgDRItRWxa4GdgFqMLGL63TSUHGNhZcmRj+P\nfOBpK9GY9JWHW355d+murGzbvIZbjw+wqO51rnyRJ4LSUQEH4BE5K+da4mAH/1eG\nLKfExSBpQ8J1ReotKDT7tauNhTdAQ5msVqIjAHNMIGSkjE9VHsnY1n0aZDquPVSJ\nOExn7k3xUC4RdH1qByE/8qtlJa6iji7xxEaXhblbH4ADR5bXzMkNIQ0kgPi0w4eu\nFJcX1m9v0WUj5IsSTaI0joovBolXxOcm4kL9sc6yjeMx3oRWEAHvnBm/6W5Ifl2V\nQyt5FUhpAgMBAAECggEAB9PRWzCeHD8gZuAmzvhlMdCTXh03bvw7v38d2Ar8qFgV\nusRYfYOBc5ullPOMDulBow3DHaGY2aaEh2IUWM582YXBQWo1duECJH0zvxI2ZySZ\nXbQR89gftCFsH3JMHBwU+XUFBBwAp/w1sINnrxMJkvooyFdeIeDjEFozPSZ1uxNd\nTiv5ElG3hnWK906o4mkjG91AeFNwTuMNFkyQA2/d4CB+LwueSxsKGZ5Qc2iZZD04\nS7WgPenW1cjRttWDlSa2AvWUd9Hy/lag878hlawdNkitKao0hHsj+D/wZ4zCC9WJ\n1nrHy7t567nULUX7CH7B5cYfCdpQdvGaJZPCmI4JkwKBgQDn81fC/c2ciJkfWQhz\nLOWNUyCyQkjhbA6r6dr87Y6ccaP+5tATTtOL1FIv0pdFmm7Dyoho7MU7g7p+j3Yf\nW+1GalbdGGP4u0KTmzR2lR249kJMAGYYTqeWy7uA9HV8qEzdD6FsgNbi/hIvdjgx\nIHwE9FGlIxVdm3TUXwNJoHYm4wKBgQDmGt83jV5Yb6l09nI0YQeAW9jSA93llHGP\nxYh0xx5fkJfqVmnNceMwOKd/m2US2SKj6qLtKlpzX0KD6FLantpyfcrsbd8CVnRI\nJ3evOi6omHi7+93xDd4Ty+I13WDeAxyD0f/wFMhv3yrRbUnMUaPDE/KBhEoR5clH\niqOJytJpQwKBgCND0BgJVnVyHzWw56P7M3tlJBd2FHaRYzmn+G9z/rayYGik1wXY\nejlMMqKqte0TKbwC0vKA7Qu7X2NWlHL4Gv8Vs9cxmiF69whSFIvi5/3zEulTNjKD\n4t7+YqecgzBMtkL12WkRvZoNXt5wbuKpObHXI4Kj7t+ofv6641kSWGRZAoGBAK1l\nzpPkOhZWftIe7My/2ZFGpUsNkudwR2taJYwqiJ7nLTNvzub8TYGHD+G/Thk3+zye\nkgw6gFK0lEEmj1kjn+XrGUG1QfpW/+VnqG8pXwO5cjHmiMcf9hvg5iRFILvsiE5l\nr4JRhwGWoIOU4anQU6GrpHEpKU/3YwhAVyB88LZVAoGAPP9DPWz/dyBoR21M22GZ\ndJ6LWTopp0eburNOLhn/itICsSuXk3091olj6b+MZI1OF7GojeL+QEcPlg1Bx5Dq\nR3UWotCzQ5YSA86ps69OCWOIzUu/K+RcWvERr/0UFYtj4oObJh9Iv0CO/czPWCqu\n1J+DNlcVfsV4AhAAIWLoc9c=\n-----END PRIVATE KEY-----\n",
+  "client_email": "service-account@meal-shame-tracker.iam.gserviceaccount.com",
+  "client_id": "110074583422603722024",
+  "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+  "token_uri": "https://oauth2.googleapis.com/token",
+  "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+  "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/service-account%40meal-shame-tracker.iam.gserviceaccount.com",
+  "universe_domain": "googleapis.com"
+}
