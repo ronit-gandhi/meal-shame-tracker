@@ -122,6 +122,7 @@ with st.expander("📜 Show Previous Days"):
 # ----------------------------
 
 import matplotlib.pyplot as plt
+import matplotlib.dates as mdates
 
 st.subheader("📈 Calorie History")
 
@@ -133,9 +134,16 @@ else:
 
     fig, ax = plt.subplots()
     chart_data.plot(kind="line", marker="o", ax=ax)
+
     ax.set_title("Daily Calorie Intake")
     ax.set_ylabel("Calories")
     ax.set_xlabel("Date")
-    ax.grid(True)
-    st.pyplot(fig)
 
+    # Format x-axis to clean date display
+    ax.xaxis.set_major_formatter(mdates.DateFormatter('%b %d'))  # e.g., Nov 10
+    ax.xaxis.set_major_locator(mdates.DayLocator())
+    fig.autofmt_xdate()  # auto rotate labels
+
+    ax.grid(True)
+    ax.legend(title="Name")
+    st.pyplot(fig)
