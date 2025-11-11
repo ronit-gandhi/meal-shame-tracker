@@ -169,7 +169,7 @@ else:
                     comments = ""
                 updated_comments = comments + ("" if comments == "" else "\n") + f"{now.strftime('%H:%M')} - {new_comment}"
                 df.at[i, "Comments"] = updated_comments
-                df.to_csv(CSV_FILE, index=False)
+                sheet.update_cell(i + 2, 6, updated_comments)  # 6th column = "Comments"
                 st.rerun()
 
 # ----------------------------
