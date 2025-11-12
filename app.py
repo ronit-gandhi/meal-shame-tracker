@@ -60,7 +60,7 @@ with st.form("meal_form"):
 
 if submit and meal.strip():
     # 🐷 Piggy Check
-    limits = {"Lord Ronit Gandhi": 2000, "Commoner Himanshu Gandhi": 1800}
+    limits = {"Lord Ronit Gandhi": 2000, "Commoner Himanshu Gandhi": 1850}
     limit = limits.get(name, 2000)
     if calories > limit:
         diff = calories - limit
@@ -136,12 +136,12 @@ st.sidebar.header("🔥 Progress Dashboard")
 # --- CONFIG ---
 calorie_goal = {
     "Lord Ronit Gandhi": 2000,   # personal target
-    "Commoner Himanshu Gandhi": 1800
+    "Commoner Himanshu Gandhi": 1850
 }
 
 TDEE = {
     "Lord Ronit Gandhi": 2500,   # estimated maintenance
-    "Commoner Himanshu Gandhi": 2200
+    "Commoner Himanshu Gandhi": 2400
 }
 
 if not df.empty:
