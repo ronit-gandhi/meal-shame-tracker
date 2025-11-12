@@ -39,13 +39,19 @@ def load_data():
 df = load_data()
 
 # ========================
-# Compute today's meals
+# Compute today's meals (fixed timezone handling)
 # ========================
-today = datetime.now(CENTRAL_TZ).date()
 if not df.empty:
-    df_today = df[df["timestamp"].dt.date == today]
+    # Ensure proper timezone conversion
+    df["timestamp"] = pd.to_datetime(df["timestamp"], errors="coerce", utc=True)
+    df["timestamp"] = df["timestamp"].dt.tz_convert(CENTRAL_TZ)
+
+    # Normalize and filter for today's date in Central Time
+    today = datetime.now(CENTRAL_TZ).date()
+    df_today = df[df["timestamp"].dt.tz_localize(None).dt.date == today]
 else:
-    df_today = pd.DataFrame(columns=df.columns)
+    df_today = pd.DataFrame(columns=["id", "timestamp", "name", "meal", "calories", "description", "comments"])
+
 
 # ========================
 # Input form
