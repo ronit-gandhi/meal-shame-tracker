@@ -71,11 +71,14 @@ if submit and meal.strip():
     if calories > limit:
         diff = calories - limit
         if diff > 500:
-            st.error(f"🐷 {name}, {diff} cal over the limit?! You're going full hog mode.")
+            st.error(f"🐷 {name}, {diff} cal over the limit?! Might as well start spending your day in the mud, baconator lookin ass. Built like a bowlinhg ball, charlottes web lookin ass. no wonder your hair is greasy with all that butter you been drinking, looking like peppa pig obtuse sidekick.")
         elif diff > 200:
             st.error(f"🐷 {name}, {diff} cal over. Maybe lay off the snacks, piggy.")
         else:
             st.error(f"🐷 {name}, you just tipped over by {diff} cal. Still counts. 🐖")
+
+
+        time.sleep(3)
 
     # Save meal
     supabase.table("meals").insert({
