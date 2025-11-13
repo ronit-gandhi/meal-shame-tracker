@@ -5,6 +5,8 @@ from zoneinfo import ZoneInfo
 from supabase import create_client, Client
 import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
+import time
+
 
 # ========================
 # CONFIG
